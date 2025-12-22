@@ -10,10 +10,31 @@ strut = u'\u25CF'
 triangle = u'\u227b' # 5BA'
 
 
+def colored_text(text, color):
+    return colored(text, color, attrs=['bold'])
+
+def dark(text):
+    return colored(text, 'white', attrs=['dark'])
+def green(text):
+    return colored_text(text, 'green')
+def white(text):
+    return colored_text(text, 'white')
+def yellow(text):
+    return colored_text(text, 'yellow')
+def cyan(text):
+    return colored_text(text, 'cyan')
+def red(text):
+    return colored_text(text, 'red')
+def magenta(text):
+    return colored_text(text, 'magenta')
+def blue(text):
+    return colored_text(text, 'magenta')
+
+
 
 
 #heartbeat = '⣷⣯⣟⡿⢿⣻⣽⣾' # '<^>v'  # '.o0o' # '-\|/'
-heartbeat = '-\|/'
+heartbeat = '{|}|'
 # heartbeat = ['|.    |',
 #              '| o   |',
 #              '|  0  |', 
@@ -64,22 +85,22 @@ def rack_string(racks):
 
 
 def vac_string(vac):
-    string = ''
+    out = ''
     for count, pv in enumerate(vac):
+        string = '%d' % (count+1)
         if pv.connected is False:
-            color = 'blue'
+            out += blue(string)
         elif pv.get() == 'LO<E-11':
-            color = 'blue'
+            out += blue(string)
         elif pv.get() in ('OFF', 'WAIT', 'PROT_OFF'):
-            color = 'blue'
+            out += blue(string)
         elif float(pv.get()) > 5.0e-7:
-            color = 'red'
+            out += red(string)
         elif float(pv.get()) > 9.0e-8:
-            color = 'yellow'
+            out += yellow(string)
         else:
-            color =  'green'
-        string += colored('%d' % (count+1), color, attrs=['bold'])
-    return string
+            out += green(string)
+    return out
 
 def temperature_string(temperatures):
     def talarm_state(index):
@@ -134,9 +155,9 @@ def valves_string(fe_valves, valves, maintenance):
 
 def ln2_string(ln2):
     if ln2.get() == 1:
-        return colored('LN', 'blue', attrs=['bold'])
+        return blue('LN')
     else:
-        return colored('LN', 'white', attrs=['dark'])
+        return dark('LN')
     
 def determine_reference(sample):
     mapping = json.loads(rkvs.get('BMM:reference:mapping').decode('utf-8'))
