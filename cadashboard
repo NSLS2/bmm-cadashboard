@@ -4,25 +4,21 @@ import sys, os, signal, epics
 from time import sleep
 from termcolor import colored
 
-import configparser
-profile_configuration = configparser.ConfigParser(interpolation=None)
-profile_configuration.read_file(open('epicsconfig.ini'))
-pc = profile_configuration
-
-
+# use the same monochromator parameters as the bsui profiles
 sys.path.append('/home/xf06bm/.ipython/profile_common/BMMCommon/')
 from optics.dcm_parameters import dcm_parameters
 BMM_dcm = dcm_parameters()
 
 from numpy import pi, sin, cos, arcsin, deg2rad
 
-import redis
-redis_host = 'xf06bm-ioc2'
-rkvs = redis.Redis(host=redis_host, port=6379, db=0)
 
+from dashboard_tools import red, white, magenta, dark, yellow, cyan, green
 from dashboard_tools import heartbeat, strut, triangle, HBARC
 from dashboard_tools import writeline, determine_reference, remaining
 from dashboard_tools import rack_string, vac_string, temperature_string, valves_string, ln2_string
+
+from dashboard_epics import rkvs, maintenance
+from dashboard_epics import *   # all motor and signal PVs
 
 
 xrd = False
@@ -32,118 +28,20 @@ try:
 except:
     pass
 
-maintenance = False
-try:
-    if 'main' in sys.argv[1].lower():
-        maintenance = True
-except:
-    pass
-
-
-
-
-
 def signal_handler(sig, frame):
     print('\nQuitting cadashboard. Bye.')
     sys.exit(0)  
 signal.signal(signal.SIGINT, signal_handler)
 
-
 count = 0
 
-## ----- various PVs and other scalars
-i0     = epics.PV(pc.get('pvs', 'i0'))
-it     = epics.PV(pc.get('pvs', 'it'))
-if rkvs.get('BMM:Ir').decode('utf-8') == 'quadem':
-    ir = epics.PV(pc.get('pvs', 'ir_ic'))
-else:
-    ir = epics.PV(pc.get('pvs', 'ir_quadem'))
-iy     = epics.PV(pc.get('pvs', 'iy'))
-#bicron       = epics.PV(pc.get('pvs', 'bicron'))
-ring_current = epics.PV(pc.get('pvs', 'ring_current'))
-sleep(0.25)
-ring_connected = ring_current.connect()
-
-if maintenance is False:
-    bl           = epics.PV(pc.get('pvs', 'bl'))
-    bmps         = epics.PV(pc.get('pvs', 'bmps'))
-    sha          = epics.PV(pc.get('pvs', 'sha'))
-    shb          = epics.PV(pc.get('pvs', 'shb'))
-
-bragg        = epics.Motor(pc.get('motors', 'bragg'))
-dcmx         = epics.Motor(pc.get('motors', 'dcmx'))
-sample       = {'x'     : epics.Motor(pc.get('motors', 'sample_x')),
-                'y'     : epics.Motor(pc.get('motors', 'sample_y')),
-                'wheel' : epics.Motor(pc.get('motors', 'sample_wheel')),
-                'garot' : epics.Motor(pc.get('motors', 'sample_garot')),
-                'pitch' : epics.Motor(pc.get('motors', 'sample_pitch')),
-                'ref'   : epics.Motor(pc.get('motors', 'sample_ref')),
-                'refx'  : epics.Motor(pc.get('motors', 'sample_refx')),
-                'det'   : epics.Motor(pc.get('motors', 'sample_det')),
-}
-vac          = [epics.PV(pc.get('pvs', 'vac0')),
-                epics.PV(pc.get('pvs', 'vac1')),
-                epics.PV(pc.get('pvs', 'vac2')),
-                epics.PV(pc.get('pvs', 'vac3')),
-                epics.PV(pc.get('pvs', 'vac4')),
-                epics.PV(pc.get('pvs', 'vac5')),
-                epics.PV(pc.get('pvs', 'vac6'))]
-
-temperatures = [epics.PV(pc.get('pvs', 't0')),
-                epics.PV(pc.get('pvs', 't1')),
-                epics.PV(pc.get('pvs', 't2')),
-                epics.PV(pc.get('pvs', 't3')),
-                epics.PV(pc.get('pvs', 't4')),
-                epics.PV(pc.get('pvs', 't5')),
-                epics.PV(pc.get('pvs', 't6')),
-                epics.PV(pc.get('pvs', 't7')),
-                epics.PV(pc.get('pvs', 't8')),
-                epics.PV(pc.get('pvs', 't9')),
-                epics.PV(pc.get('pvs', 't10')),]
-
-rackA1 = epics.PV(pc.get('pvs', 'rackA1'))
-rackB1 = epics.PV(pc.get('pvs', 'rackB1'))
-rackC1 = epics.PV(pc.get('pvs', 'rackC1'))
-rackC2 = epics.PV(pc.get('pvs', 'rackC2'))
-rackC3 = epics.PV(pc.get('pvs', 'rackC3'))
-
-if maintenance is False:
-    fe_valves    = [epics.PV(pc.get('pvs', 'fev0')),
-                    epics.PV(pc.get('pvs', 'fev1')),
-                    epics.PV(pc.get('pvs', 'fev2')),]
-valves       = [epics.PV(pc.get('pvs', 'v0')),
-                epics.PV(pc.get('pvs', 'v1')),
-                epics.PV(pc.get('pvs', 'v2')),
-                epics.PV(pc.get('pvs', 'v3')),
-                epics.PV(pc.get('pvs', 'v4')),
-                epics.PV(pc.get('pvs', 'v5')), ]
-ln2 = epics.PV(pc.get('pvs', 'ln2'))
-
-if xrd is True:
-    delta         = epics.Motor(pc.get('motors', 'delta'))
-    eta           = epics.Motor(pc.get('motors', 'eta'))
-    chi           = epics.Motor(pc.get('motors', 'chi'))
-    phi           = epics.Motor(pc.get('motors', 'phi'))
-    mu            = epics.Motor(pc.get('motors', 'mu'))
-    nu            = epics.Motor(pc.get('motors', 'nu'))
-
-slits         = [epics.Motor(pc.get('motors', 'slits_o')),
-                 epics.Motor(pc.get('motors', 'slits_i')),
-                 epics.Motor(pc.get('motors', 'slits_t')),
-                 epics.Motor(pc.get('motors', 'slits_b'))]
-
-try:
-    linkam = epics.PV(pc.get('pvs', 'linkam'))
-except:
-    linkam = None
-try:
-    lakeshore = epics.PV(pc.get('pvs', 'lakeshore'))
-except:
-    lakeshore = None
-
     
-
-
+## game plan:
+##
+## on each loop gather up text tokens for each of the things to be displayed in the
+## dashboard. Each of these tokens gets colored according to its state.
+## These tokens are then concatinated into a three-line message that gets
+## redisplayed every second
 
 print('\n')
 waiting = True
@@ -155,48 +53,34 @@ while waiting:
     #if m2.vert < 0 and m2.pitch > 3:
     #    xrd = True
     
-    ## ----- shutters and ring current
+    ## ----- text tokens for shutters and beamline enabled state
+    if maintenance is True:     #  in maintenance mode
+        bl_show   = red('Dis')
+        bmps_show = red('BMPS')
+        sha_show  = red('A shutter')
+        shb_show  = red('B shutter')
+    else:                       # else display green for open, gray for closed
+        bl_show   = dark('Dis')    if bl.get()   == 0 else green('Ena')
+        bmps_show = dark('BMPS')   if bmps.get() == 0 else green('BMPS')
+        sha_show  = dark('A shtr') if sha.get()  == 1 else green('A shtr')
+        shb_show  = dark('B shtr') if shb.get()  == 1 else green('B shtr')
+
+    ## ----- text token for ring current
     if maintenance is True:
-        bl_show = colored('Dis', 'red', attrs=['bold'])
-        bmps_show = colored('BMPS', 'red', attrs=['bold'])
-        sha_show = colored('A shutter', 'red', attrs=['bold'])
-        shb_show = colored('B shutter', 'red', attrs=['bold'])
-    else:
-        if bl.get() == 0:
-            bl_show = colored('Dis', 'white', attrs=['dark'])
-        else:
-            bl_show = colored('Ena', 'green', attrs=['bold'])
-
-        if bmps.get() == 0:
-            bmps_show = colored('BMPS', 'white', attrs=['dark'])
-        else:
-            bmps_show = colored('BMPS', 'green', attrs=['bold'])
-
-        if sha.get() == 1:
-            sha_show = colored('A shtr', 'white', attrs=['dark'])
-        else:
-            sha_show = colored('A shtr', 'green', attrs=['bold'])
-
-        if shb.get() == 1:
-            shb_show = colored('B shtr', 'white', attrs=['dark'])
-        else:
-            shb_show = colored('B shtr', 'green', attrs=['bold'])
-
-    if maintenance is True:
-        ring_show = colored(' maint ', 'magenta', attrs=None)
+        ring_show = magenta(' maint ')
     else:
         if ring_connected is False:
-            ring_show = colored('  ???   ', 'magenta', attrs=None)
+            ring_show = magenta('  ???   ')
         else:
             try:
                 if ring_current.get() > 100:
-                    ring_show = colored('%5.1f mA' % ring_current.get(), 'cyan', attrs=None)
+                    ring_show = cyan('%5.1f mA' % ring_current.get())
                 else:
-                    ring_show = colored('%5.1f mA' % ring_current.get(), 'cyan', attrs=None)
+                    ring_show = cyan('%5.1f mA' % ring_current.get())
             except:
-                    ring_show = colored('  ???   ', 'red', attrs=None)
+                    ring_show = red('  ???   ')
 
-    ## ----- ion chamber signals
+    ## ----- text tokens for ion chamber signals
     def icsig(sig):
         try:
             val = sig.get()*10**9
@@ -229,8 +113,10 @@ while waiting:
             
     ## ----- update the energy
     if dcmx.RBV < 10:
+        # 111 monochromator in use, we know this because dcm.x is at a position less than 10 
         current_energy = (2*pi*HBARC) / (2*BMM_dcm.dspacing_111*sin(deg2rad(bragg.RBV)))
     else:
+        # 311 monochromator in use, we know this because dcm.x is at a position greater than 10 
         current_energy = (2*pi*HBARC) / (2*BMM_dcm.dspacing_311*sin(deg2rad(bragg.RBV)))
     
     ## ----- update the display
@@ -264,11 +150,6 @@ while waiting:
             if slot == 0: slot = 24
         ref = determine_reference(sample)
         
-        def bright(txt):
-            return colored(txt, 'white', attrs=['bold'])
-        def cyan(txt):
-            return colored(txt, 'cyan', attrs=['bold'])
-
         ## --- top line: shutters, indicators for racks, temps, valves, vacuum
         rs  = rack_string((rackA1, rackB1,rackC1, rackC2, rackC3))
         vs  = vac_string(vac)
@@ -276,19 +157,19 @@ while waiting:
         lns = ln2_string(ln2)
         vas = valves_string(fe_valves, valves, maintenance)
         shutters = f'[{bl_show}] [{bmps_show}] [{sha_show}] [{shb_show}]'
-        line1 = f"{shutters} {bright('Racks')}: {rs} {strut} {bright('Vac')}: {vs} {strut} {bright('TC')}: {ts} {strut} {bright('GV')}: {vas}  {lns}\n"
+        line1 = f"{shutters} {white('Racks')}: {rs} {strut} {white('Vac')}: {vs} {strut} {white('TC')}: {ts} {strut} {white('GV')}: {vas}  {lns}\n"
 
         ## --- middle line: mono, element/edge, ion chambers, scan timer
-        el  = colored(rkvs.get('BMM:pds:element').decode('utf-8'), 'yellow', attrs=['bold'])
-        ed  = colored(rkvs.get('BMM:pds:edge').decode('utf-8'), 'yellow', attrs=['bold'])
-        i0s = colored('I0', 'white', attrs=['bold']) + f':{i0val:8.3f} nA '
-        its = colored('It', 'white', attrs=['bold']) + f':{itval:8.3f} nA '
-        irs = colored('Ir', 'white', attrs=['bold']) + f':{irval:8.3f} nA '
-        iys = colored('Iy', 'white', attrs=['bold']) + f':{iyval:8.3f} nA  '
+        el  = yellow(rkvs.get('BMM:pds:element').decode('utf-8'))
+        ed  = yellow(rkvs.get('BMM:pds:edge').decode('utf-8'))
+        i0s = white('I0') + f':{i0val:8.3f} nA '
+        its = white('It') + f':{itval:8.3f} nA '
+        irs = white('Ir') + f':{irval:8.3f} nA '
+        iys = white('Iy') + f':{iyval:8.3f} nA  '
         if int(rkvs.get('BMM:Iy')) == 0:
-            line2 = f"{bright('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {strut} {bright('XAS')} {scan}\n"
+            line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {strut} {white('XAS')} {scan}\n"
         else:
-            line2 = f"{bright('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {iys} {strut} {bright('XAS')} {scan}\n"
+            line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {iys} {strut} {white('XAS')} {scan}\n"
             
         ## --- bottom line: sample stages, heartbeat
         posX  = f" X: {sample['x'].RBV:7.3f} |"
@@ -297,8 +178,8 @@ while waiting:
         posD  = f"det: {sample['det'].RBV:5.1f} |"
         slH   = slits[0].RBV-slits[1].RBV
         slV   = slits[2].RBV-slits[3].RBV
-        hb    = colored(heartbeat[hcount], 'yellow')
-        line3 = colored('Sample '+triangle, 'yellow', attrs=['bold']) + f'{posX}{posY} {posP} Ref: {ref}  | {posD} slits: {slH:5.2f} x{slV:5.2f} | {instrument} {slot:<6}                     {hb} '
+        hb    = yellow(heartbeat[hcount])
+        line3 = yellow('Sample '+triangle) + f'{posX}{posY} {posP} Ref: {ref}  | {posD} slits: {slH:5.2f} x{slV:5.2f} | {instrument} {slot:<6}                     {hb} '
 
         writeline(line1+line2+line3)
 
@@ -321,15 +202,15 @@ while waiting:
         try:
             writeline(template  %
                       (bl_show, bmps_show, sha_show, shb_show, ring_show, strut,
-                       colored('Vac', 'white', attrs=['bold']), vac_string(), strut,
-                       colored('TC', 'white', attrs=['bold']), temperature_string(), strut,
-                       colored('GV', 'white', attrs=['bold']), valves_string(),
+                       white('Vac'), vac_string(), strut,
+                       white('TC'), temperature_string(), strut,
+                       white('GV'), valves_string(),
 
-                       colored('mono', 'white', attrs=['bold']), colored('%.1f eV' % current_energy, 'cyan', attrs=['bold']), strut,
-                       colored('Bicron', 'white', attrs=['bold']), int(bicron.get()),
-                       colored('XAS',  'white', attrs=['bold']), scan,
+                       white('mono'), cyan('%.1f eV' % current_energy), strut,
+                       white('Bicron'), int(bicron.get()),
+                       white('XAS'), scan,
                    
-                       colored('Goniometer '+triangle, 'yellow', attrs=['bold']),
+                       yellow('Goniometer '+triangle),
                        u'\u03B4', delta.RBV,
                        u'\u03B7', eta.RBV,
                        u'\u03C7', chi.RBV,
