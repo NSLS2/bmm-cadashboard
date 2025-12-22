@@ -3,8 +3,15 @@
 import sys, os, signal, epics
 from time import sleep
 from termcolor import colored
-#sys.path.append('/home/xf06bm/git/BMM-beamline-configuration/tools/python')
-exec(open('/home/xf06bm/.ipython/profile_common/BMMCommon/optics/dcm_parameters.py').read())
+
+import configparser
+profile_configuration = configparser.ConfigParser(interpolation=None)
+profile_configuration.read_file(open('epicsconfig.ini'))
+pc = profile_configuration
+
+
+sys.path.append('/home/xf06bm/.ipython/profile_common/BMMCommon/')
+from optics.dcm_parameters import dcm_parameters
 BMM_dcm = dcm_parameters()
 
 from numpy import pi, sin, cos, arcsin, deg2rad
@@ -45,95 +52,92 @@ signal.signal(signal.SIGINT, signal_handler)
 count = 0
 
 ## ----- various PVs and other scalars
-i0           = epics.PV('XF:06BM-BI{IC:0}EM180:Current1:MeanValue_RBV')
-it           = epics.PV('XF:06BM-BI{IC:1}EM180:Current1:MeanValue_RBV')
+i0     = epics.PV(pc.get('pvs', 'i0'))
+it     = epics.PV(pc.get('pvs', 'it'))
 if rkvs.get('BMM:Ir').decode('utf-8') == 'quadem':
-    ir           = epics.PV('XF:06BM-BI{EM:1}EM180:Current3:MeanValue_RBV')
+    ir = epics.PV(pc.get('pvs', 'ir_ic'))
 else:
-    ir           = epics.PV('XF:06BM-BI{IC:3}EM180:Current1:MeanValue_RBV')
-iy           = epics.PV('XF:06BM-BI{EM:1}EM180:Current4:MeanValue_RBV')
-#bicron       = epics.PV('XF:06BM-ES:1{Sclr:1}.S25')
-ring_current = epics.PV('SR:OPS-BI{DCCT:1}I:Real-I')
+    ir = epics.PV(pc.get('pvs', 'ir_quadem'))
+iy     = epics.PV(pc.get('pvs', 'iy'))
+#bicron       = epics.PV(pc.get('pvs', 'bicron'))
+ring_current = epics.PV(pc.get('pvs', 'ring_current'))
 sleep(0.25)
 ring_connected = ring_current.connect()
 
 if maintenance is False:
-    bl           = epics.PV('SR:C06-EPS{PLC:1}Sts:BM_BE_Enbl-Sts')
-    bmps         = epics.PV('SR:C06-EPS{PLC:1}Sts:BM_BMPS_Opn-Sts')
-    sha          = epics.PV('XF:06BM-PPS{Sh:FE}Pos-Sts')
-    shb          = epics.PV('XF:06BM-PPS{Sh:A}Pos-Sts')
+    bl           = epics.PV(pc.get('pvs', 'bl'))
+    bmps         = epics.PV(pc.get('pvs', 'bmps'))
+    sha          = epics.PV(pc.get('pvs', 'sha'))
+    shb          = epics.PV(pc.get('pvs', 'shb'))
 
-bragg        = epics.Motor('XF:06BMA-OP{Mono:DCM1-Ax:Bragg}Mtr')
-dcmx         = epics.Motor('XF:06BMA-OP{Mono:DCM1-Ax:X}Mtr')
-sample       = {#'x'     : epics.Motor('XF:06BMA-BI{XAFS-Ax:RefX}Mtr'),
-                #'y'     : epics.Motor('XF:06BMA-BI{XAFS-Ax:LinXS}Mtr'),
-                'x'     : epics.Motor('XF:06BMA-BI{XAFS-Ax:LinX}Mtr'),
-                'y'     : epics.Motor('XF:06BMA-BI{XAFS-Ax:LinY}Mtr'),
-                'wheel' : epics.Motor('XF:06BMA-BI{XAFS-Ax:RotB}Mtr'),
-                'garot' : epics.Motor('XF:06BMA-BI{XAFS-Ax:Mtr8}Mtr'),
-                'pitch' : epics.Motor('XF:06BMA-BI{XAFS-Ax:Roll}Mtr'),
-                'ref'   : epics.Motor('XF:06BMA-BI{XAFS-Ax:Ref}Mtr'),
-                'refx'  : epics.Motor('XF:06BMA-BI{XAFS-Ax:RefX}Mtr'),
-                #'det'   : epics.Motor('XF:06BMA-BI{XAFS-Ax:LinS}Mtr'),
-                'det'   : epics.Motor('XF:06BMA-BI{XAFS-Ax:Tbl_XD}Mtr'),
+bragg        = epics.Motor(pc.get('motors', 'bragg'))
+dcmx         = epics.Motor(pc.get('motors', 'dcmx'))
+sample       = {'x'     : epics.Motor(pc.get('motors', 'sample_x')),
+                'y'     : epics.Motor(pc.get('motors', 'sample_y')),
+                'wheel' : epics.Motor(pc.get('motors', 'sample_wheel')),
+                'garot' : epics.Motor(pc.get('motors', 'sample_garot')),
+                'pitch' : epics.Motor(pc.get('motors', 'sample_pitch')),
+                'ref'   : epics.Motor(pc.get('motors', 'sample_ref')),
+                'refx'  : epics.Motor(pc.get('motors', 'sample_refx')),
+                'det'   : epics.Motor(pc.get('motors', 'sample_det')),
 }
-vac          = [epics.PV("XF:06BMA-VA{FS:1-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMA-VA{Mono:DCM-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMA-VA{FS:2-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMA-VA{Mir:2-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMA-VA{Mir:3-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMB-VA{BT:1-CCG:1}P:Raw-I"),
-                epics.PV("XF:06BMB-VA{FS:3-CCG:1}P:Raw-I")]
+vac          = [epics.PV(pc.get('pvs', 'vac0')),
+                epics.PV(pc.get('pvs', 'vac1')),
+                epics.PV(pc.get('pvs', 'vac2')),
+                epics.PV(pc.get('pvs', 'vac3')),
+                epics.PV(pc.get('pvs', 'vac4')),
+                epics.PV(pc.get('pvs', 'vac5')),
+                epics.PV(pc.get('pvs', 'vac6'))]
 
-temperatures = [epics.PV('XF:06BMA-OP{Mono:DCM-Crys:1}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:2}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:1-Ax:R}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:2-Ax:P}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:2-Ax:R}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:2-Ax:Perp}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mono:DCM-Crys:2-Ax:Para}T-I-I'),
-                epics.PV('XF:06BMA-OP{Mir:2}T:1-I-I'),
-                epics.PV('XF:06BMA-OP{Mir:2}T:2-I-I'),
-                epics.PV('XF:06BMA-OP{Mir:3}T:1-I-I'),
-                epics.PV('XF:06BMA-OP{Mir:3}T:2-I-I'),]
+temperatures = [epics.PV(pc.get('pvs', 't0')),
+                epics.PV(pc.get('pvs', 't1')),
+                epics.PV(pc.get('pvs', 't2')),
+                epics.PV(pc.get('pvs', 't3')),
+                epics.PV(pc.get('pvs', 't4')),
+                epics.PV(pc.get('pvs', 't5')),
+                epics.PV(pc.get('pvs', 't6')),
+                epics.PV(pc.get('pvs', 't7')),
+                epics.PV(pc.get('pvs', 't8')),
+                epics.PV(pc.get('pvs', 't9')),
+                epics.PV(pc.get('pvs', 't10')),]
 
-rackA1 = epics.PV('XF:06BM-CT{RG:A1}T-I')
-rackB1 = epics.PV('XF:06BM-CT{RG:B1}T-I')
-rackC1 = epics.PV('XF:06BM-CT{RG:C1}T-I')
-rackC2 = epics.PV('XF:06BM-CT{RG:C2}T-I')
-rackC3 = epics.PV('XF:06BM-CT{RG:C3}T-I')
+rackA1 = epics.PV(pc.get('pvs', 'rackA1'))
+rackB1 = epics.PV(pc.get('pvs', 'rackB1'))
+rackC1 = epics.PV(pc.get('pvs', 'rackC1'))
+rackC2 = epics.PV(pc.get('pvs', 'rackC2'))
+rackC3 = epics.PV(pc.get('pvs', 'rackC3'))
 
 if maintenance is False:
-    fe_valves    = [epics.PV('FE:C06B-VA{GV:1}DB:Pos-Sts'),
-                    epics.PV('FE:C06B-VA{GV:2}DB:Pos-Sts'),
-                    epics.PV('FE:C06B-VA{GV:3}DB:Pos-Sts'),]
-valves       = [epics.PV('XF:06BMA-VA{FS:1-GV:1}Pos-Sts'),
-                epics.PV('XF:06BMA-VA{BS:PB-GV:1}Pos-Sts'),
-                epics.PV('XF:06BMA-VA{FS:2-GV:1}Pos-Sts'),
-                epics.PV('XF:06BMA-VA{Mir:2-GV:1}Pos-Sts'),
-                epics.PV('XF:06BMA-VA{Mir:3-GV:1}Pos-Sts'),
-                epics.PV('XF:06BMB-VA{BT:1-GV:1}Pos-Sts'), ]
-ln2 = epics.PV('XF:06BM-PU{LN2-Main:IV}Pos-Sts')
+    fe_valves    = [epics.PV(pc.get('pvs', 'fev0')),
+                    epics.PV(pc.get('pvs', 'fev1')),
+                    epics.PV(pc.get('pvs', 'fev2')),]
+valves       = [epics.PV(pc.get('pvs', 'v0')),
+                epics.PV(pc.get('pvs', 'v1')),
+                epics.PV(pc.get('pvs', 'v2')),
+                epics.PV(pc.get('pvs', 'v3')),
+                epics.PV(pc.get('pvs', 'v4')),
+                epics.PV(pc.get('pvs', 'v5')), ]
+ln2 = epics.PV(pc.get('pvs', 'ln2'))
 
 if xrd is True:
-    delta         = epics.Motor('XF:06BM-ES{SixC-Ax:VTTH}Mtr')
-    eta           = epics.Motor('XF:06BM-ES{SixC-Ax:VTH}Mtr')
-    chi           = epics.Motor('XF:06BM-ES{SixC-Ax:CHI}Mtr')
-    phi           = epics.Motor('XF:06BM-ES{SixC-Ax:PHI}Mtr')
-    mu            = epics.Motor('XF:06BM-ES{SixC-Ax:HTH}Mtr')
-    nu            = epics.Motor('XF:06BM-ES{SixC-Ax:HTTH}Mtr')
+    delta         = epics.Motor(pc.get('motors', 'delta'))
+    eta           = epics.Motor(pc.get('motors', 'eta'))
+    chi           = epics.Motor(pc.get('motors', 'chi'))
+    phi           = epics.Motor(pc.get('motors', 'phi'))
+    mu            = epics.Motor(pc.get('motors', 'mu'))
+    nu            = epics.Motor(pc.get('motors', 'nu'))
 
-slits         = [epics.Motor('XF:06BM-BI{Slt:02-Ax:O}Mtr'),
-                 epics.Motor('XF:06BM-BI{Slt:02-Ax:I}Mtr'),
-                 epics.Motor('XF:06BM-BI{Slt:02-Ax:T}Mtr'),
-                 epics.Motor('XF:06BM-BI{Slt:02-Ax:B}Mtr')]
+slits         = [epics.Motor(pc.get('motors', 'slits_o')),
+                 epics.Motor(pc.get('motors', 'slits_i')),
+                 epics.Motor(pc.get('motors', 'slits_t')),
+                 epics.Motor(pc.get('motors', 'slits_b'))]
 
 try:
-    linkam = epics.PV('XF:06BM-ES:{LINKAM}:TEMP')
+    linkam = epics.PV(pc.get('pvs', 'linkam'))
 except:
     linkam = None
 try:
-    lakeshore = epics.PV('XF:06BM-BI{LS:331-1}:SAMPLE_A')
+    lakeshore = epics.PV(pc.get('pvs', 'lakeshore'))
 except:
     lakeshore = None
 
