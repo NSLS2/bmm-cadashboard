@@ -5,8 +5,8 @@ from time import sleep
 from termcolor import colored
 
 # use the same monochromator parameters as the bsui profiles
-sys.path.append('/home/xf06bm/.ipython/profile_common/BMMCommon/')
-from optics.dcm_parameters import dcm_parameters
+sys.path.append('/home/xf06bm/.ipython/bmm_tools/src/')
+from bmm_tools.optics.dcm_parameters import dcm_parameters
 BMM_dcm = dcm_parameters()
 
 from numpy import pi, sin, cos, arcsin, deg2rad
