@@ -108,6 +108,10 @@ while waiting:
             backdrop = 'on_yellow'
         elif scantype == 'time':
             backdrop = 'on_blue'
+        elif scantype == 'XRR ':
+            backdrop = 'on_green'
+        elif scantype != 'idle':
+            backdrop = 'on_black'
     if scantype != 'idle':
         scan = colored(f'{scantype} scan {remaining():<27}', 'white', backdrop)
             
@@ -146,7 +150,7 @@ while waiting:
                 slot = lakeshore.get()
         else:
             instrument = 'wheel'
-            slot = round((15+sample['wheel'].RBV) / (-15)) % 24
+            slot = round((-15+sample['wheel'].RBV) / (-15)) % 24
             if slot == 0: slot = 24
         ref = determine_reference(sample)
         
