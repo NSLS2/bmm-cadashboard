@@ -1,5 +1,6 @@
 import epics
 from time import sleep
+from nslsii.utils import open_redis_client
 
 import configparser
 profile_configuration = configparser.ConfigParser(interpolation=None)
@@ -7,8 +8,13 @@ profile_configuration.read_file(open('epicsconfig.ini'))
 pc = profile_configuration
 
 import redis
-redis_host = 'xf06bm-ioc2'
-rkvs = redis.Redis(host=redis_host, port=6379, db=0)
+#redis_host = 'xf06bm-ioc2'
+#rkvs = redis.Redis(host=redis_host, port=6379, db=0)
+redis_host = profile_configuration.get('services', 'nsls2_redis')
+redis_port = profile_configuration.get('services', 'redis_port')
+redis_ssl  = profile_configuration.get('services', 'redis_ssl')
+redis_db   = profile_configuration.get('services', 'bmm_redis')
+rkvs = open_redis_client(redis_host, redis_port, redis_ssl, redis_db=redis_db)
 
 maintenance = False
 try:
