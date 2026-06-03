@@ -93,6 +93,8 @@ valves       = [epics.PV(pc.get('pvs', 'v0')),
                 epics.PV(pc.get('pvs', 'v4')),
                 epics.PV(pc.get('pvs', 'v5')), ]
 ln2 = epics.PV(pc.get('pvs', 'ln2'))
+dia = epics.PV(pc.get('pvs', 'dia'))
+dib = epics.PV(pc.get('pvs', 'dib'))
 
 try:
     delta         = epics.Motor(pc.get('motors', 'delta'))

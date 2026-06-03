@@ -15,7 +15,7 @@ from numpy import pi, sin, cos, arcsin, deg2rad
 from dashboard_tools import red, white, magenta, dark, yellow, cyan, green
 from dashboard_tools import heartbeat, strut, triangle, HBARC
 from dashboard_tools import writeline, determine_reference, remaining
-from dashboard_tools import rack_string, vac_string, temperature_string, valves_string, ln2_string
+from dashboard_tools import rack_string, vac_string, temperature_string, valves_string, ln2_string, di_string
 
 from dashboard_epics import rkvs, maintenance
 from dashboard_epics import *   # all motor and signal PVs
@@ -159,9 +159,10 @@ while waiting:
         vs  = vac_string(vac)
         ts  = temperature_string(temperatures)
         lns = ln2_string(ln2)
+        dis = di_string(dia, dib)
         vas = valves_string(fe_valves, valves, maintenance)
         shutters = f'[{bl_show}] [{bmps_show}] [{sha_show}] [{shb_show}]'
-        line1 = f"{shutters} {white('Racks')}: {rs} {strut} {white('Vac')}: {vs} {strut} {white('TC')}: {ts} {strut} {white('GV')}: {vas}  {lns}\n"
+        line1 = f"{shutters} {white('Racks')}: {rs} {strut} {white('Vac')}: {vs} {strut} {white('TC')}: {ts} {strut} {white('GV')}: {vas} {strut} {dis} {lns}\n"
 
         ## --- middle line: mono, element/edge, ion chambers, scan timer
         el  = yellow(rkvs.get('BMM:pds:element').decode('utf-8'))
