@@ -158,6 +158,13 @@ def ln2_string(ln2):
         return blue('LN')
     else:
         return dark('LN')
+
+def di_string(dia, dib):
+    if dia.get() > 0.3 and dib.get() > 0.3:
+        return green('DI')
+    else:
+        return red('DI')
+
     
 def determine_reference(sample):
     mapping = json.loads(rkvs.get('BMM:reference:mapping').decode('utf-8'))
