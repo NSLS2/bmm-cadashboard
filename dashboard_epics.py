@@ -34,7 +34,7 @@ if rkvs.get('BMM:Ir').decode('utf-8') == 'quadem':
 else:
     ir = epics.PV(pc.get('pvs', 'ir_quadem'))
 iy     = epics.PV(pc.get('pvs', 'iy'))
-#bicron       = epics.PV(pc.get('pvs', 'bicron'))
+bicron       = epics.PV(pc.get('pvs', 'bicron'))
 ring_current = epics.PV(pc.get('pvs', 'ring_current'))
 sleep(0.25)
 ring_connected = ring_current.connect()

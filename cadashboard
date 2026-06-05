@@ -95,23 +95,25 @@ while waiting:
     ## ----- current time for time updates
     scan =     colored('   idle   ', 'grey', 'on_white')
     scantype = rkvs.get('BMM:scan:type').decode('utf-8')
-    if xrd:
-        scan = colored('not in use', 'grey', 'on_white')
-        scantype = 'idle'
-    else:
-        ## ----- type of scan (xafs | line | area | time)
-        if scantype == 'xafs':
-            backdrop = 'on_magenta'
-        elif scantype == 'line':
-            backdrop = 'on_cyan'
-        elif scantype == 'area':
-            backdrop = 'on_yellow'
-        elif scantype == 'time':
-            backdrop = 'on_blue'
-        elif scantype == 'XRR ':
-            backdrop = 'on_green'
-        elif scantype != 'idle':
-            backdrop = 'on_black'
+    # if xrd:
+    #     scan = colored('   idle   ', 'grey', 'on_white')
+    #     scantype = 'idle'
+    # else:
+
+    ## ----- type of scan (xafs | line | area | time)
+    if scantype == 'xafs':
+        backdrop = 'on_magenta'
+    elif scantype == 'line':
+        backdrop = 'on_cyan'
+    elif scantype == 'area':
+        backdrop = 'on_yellow'
+    elif scantype == 'time':
+        backdrop = 'on_blue'
+    elif scantype == 'XRR ':
+        backdrop = 'on_green'
+    elif scantype != 'idle':
+        backdrop = 'on_black'
+
     if scantype != 'idle':
         scan = colored(f'{scantype} scan {remaining():<27}', 'white', backdrop)
             
@@ -200,32 +202,34 @@ while waiting:
     
     ### XRD ###        
     else:
-        #                 shutters        current       vacuum, temperatures, gate valves
-        template = " [%s] [%s] [%s] [%s]  ring: %s  %s  %s: %s %s %s: %s %s %s: %s" + \
-                   "\n %s: %s  %s  %s: %6d counts                                                                        %s: %s" + \
-                   "\n %s %s: %8.3f | %s: %8.3f | %s: %8.3f | %s: %8.3f | %s: %8.3f | %s: %8.3f            %s"
-        try:
-            writeline(template  %
-                      (bl_show, bmps_show, sha_show, shb_show, ring_show, strut,
-                       white('Vac'), vac_string(), strut,
-                       white('TC'), temperature_string(), strut,
-                       white('GV'), valves_string(),
 
-                       white('mono'), cyan('%.1f eV' % current_energy), strut,
-                       white('Bicron'), int(bicron.get()),
-                       white('XAS'), scan,
-                   
-                       yellow('Goniometer '+triangle),
-                       u'\u03B4', delta.RBV,
-                       u'\u03B7', eta.RBV,
-                       u'\u03C7', chi.RBV,
-                       u'\u03C6', phi.RBV,
-                       u'\u03BC', mu.RBV,
-                       u'\u03BD', nu.RBV,
+        ## --- top line: shutters, indicators for racks, temps, valves, vacuum
+        rs  = rack_string((rackA1, rackB1,rackC1, rackC2, rackC3))
+        vs  = vac_string(vac)
+        ts  = temperature_string(temperatures)
+        lns = ln2_string(ln2)
+        dis = di_string(dia, dib)
+        vas = valves_string(fe_valves, valves, maintenance)
+        shutters = f'[{bl_show}] [{bmps_show}] [{sha_show}] [{shb_show}]'
+        line1 = f"{shutters} {white('Racks')}: {rs} {strut} {white('Vac')}: {vs} {strut} {white('TC')}: {ts} {strut} {white('GV')}: {vas} {strut} {dis} {lns}\n"
 
-                       heartbeat[hcount]
-                   ))
-        except:
-            pass
+        ## --- middle line: mono, element/edge, ion chambers, scan timer
+        el  = yellow(rkvs.get('BMM:pds:element').decode('utf-8'))
+        ed  = yellow(rkvs.get('BMM:pds:edge').decode('utf-8'))
+        i0s = white('I0') + f':{i0val:8.3f} nA '
+        line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} Ring: {ring_show} {strut} {i0s}  Bicron: {int(bicron.get())}                                    {white('XRD')} {scan}\n"
+
+        delta_str = f"{u'\u03B4'}: {delta.RBV:8.3f}"
+        eta_str   = f"{'\u03B7'}: {eta.RBV:8.3f}"
+        chi_str   = f"{u'\u03C7'}: {chi.RBV:8.3f}"
+        phi_str   = f"{u'\u03C6'}: {phi.RBV:8.3f}"
+        mu_str    = f"{u'\u03BC'}: {mu.RBV:8.3f}"
+        nu_str    = f"{u'\u03BD'}: {nu.RBV:8.3f}"
+        hb        = yellow(heartbeat[hcount])
+        
+        line3 = yellow('Goniometer '+triangle) + f"  {delta_str}   {eta_str}   {chi_str}   {phi_str}   {mu_str}   {nu_str}                                       {hb}"
+        
+        writeline(line1+line2+line3)
+
         sleep(1.0)
  
