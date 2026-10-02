@@ -5,7 +5,7 @@ from time import sleep
 from termcolor import colored
 
 # use the same monochromator parameters as the bsui profiles
-sys.path.append('/home/xf06bm/.ipython/bmm_tools/src/')
+sys.path.insert(0, '/home/xf06bm/.ipython/bmm_tools/src/')
 from bmm_tools.optics.dcm_parameters import dcm_parameters
 BMM_dcm = dcm_parameters()
 
@@ -109,7 +109,9 @@ while waiting:
         backdrop = 'on_yellow'
     elif scantype == 'time':
         backdrop = 'on_blue'
-    elif scantype == 'XRR ':
+    elif scantype == 'XRR':
+        backdrop = 'on_green'
+    elif scantype == 'PF':
         backdrop = 'on_green'
     elif scantype != 'idle':
         backdrop = 'on_black'
@@ -169,14 +171,17 @@ while waiting:
         ## --- middle line: mono, element/edge, ion chambers, scan timer
         el  = yellow(rkvs.get('BMM:pds:element').decode('utf-8'))
         ed  = yellow(rkvs.get('BMM:pds:edge').decode('utf-8'))
-        i0s = white('I0') + f':{i0val:8.3f} nA '
+        i0s = white('I0') + f':{i0val:9.3f} nA '
         its = white('It') + f':{itval:8.3f} nA '
         irs = white('Ir') + f':{irval:8.3f} nA '
         iys = white('Iy') + f':{iyval:8.3f} nA  '
-        if int(rkvs.get('BMM:Iy')) == 0:
-            line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {strut} {white('XAS')} {scan}\n"
-        else:
+        idiode = white('Di') + f':{iyval:8.3f} nA  '
+        if int(rkvs.get('BMM:Iy')) == 1:
             line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {iys} {strut} {white('XAS')} {scan}\n"
+        elif int(rkvs.get('BMM:diode')) == 1:
+            line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {idiode} {strut} {white('XAS')} {scan}\n"
+        else:
+            line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} {el} {ed} {strut} Ring: {ring_show} {strut} {i0s} {its} {irs} {strut} {white('XAS')} {scan}\n"
             
         ## --- bottom line: sample stages, heartbeat
         posX  = f" X: {sample['x'].RBV:7.3f} |"
@@ -210,24 +215,27 @@ while waiting:
         lns = ln2_string(ln2)
         dis = di_string(dia, dib)
         vas = valves_string(fe_valves, valves, maintenance)
+        attval = (1-att1.get())*1 + (1-att2.get())*2 + (1-att3.get())*4 + (1-att4.get())*8
         shutters = f'[{bl_show}] [{bmps_show}] [{sha_show}] [{shb_show}]'
         line1 = f"{shutters} {white('Racks')}: {rs} {strut} {white('Vac')}: {vs} {strut} {white('TC')}: {ts} {strut} {white('GV')}: {vas} {strut} {dis} {lns}\n"
 
         ## --- middle line: mono, element/edge, ion chambers, scan timer
         el  = yellow(rkvs.get('BMM:pds:element').decode('utf-8'))
         ed  = yellow(rkvs.get('BMM:pds:edge').decode('utf-8'))
-        i0s = white('I0') + f':{i0val:8.3f} nA '
-        line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} Ring: {ring_show} {strut} {i0s}  Bicron: {int(bicron.get())}                                    {white('XRD')} {scan}\n"
-
+        i0s = white('I0') + f':{i0val:9.3f} nA '
+        line2 = f"{white('mono')}: {cyan('%7.1f eV' % current_energy)} {strut} Ring: {ring_show} {strut} {i0s}  Bicron: {int(bicron.get()): 6d}   Dwell: {dwell.get():4.1f}             {white('XRD')} {scan}\n"
+        #
+        
         delta_str = f"{u'\u03B4'}: {delta.RBV:8.3f}"
-        eta_str   = f"{'\u03B7'}: {eta.RBV:8.3f}"
+        eta_str   = f"{u'\u03B7'}: {eta.RBV:8.3f}"
         chi_str   = f"{u'\u03C7'}: {chi.RBV:8.3f}"
         phi_str   = f"{u'\u03C6'}: {phi.RBV:8.3f}"
         mu_str    = f"{u'\u03BC'}: {mu.RBV:8.3f}"
         nu_str    = f"{u'\u03BD'}: {nu.RBV:8.3f}"
+        att_str   = f"Att: {attval}"
         hb        = yellow(heartbeat[hcount])
         
-        line3 = yellow('Goniometer '+triangle) + f"  {delta_str}   {eta_str}   {chi_str}   {phi_str}   {mu_str}   {nu_str}                                       {hb}"
+        line3 = yellow('Goniometer '+triangle) + f"  {delta_str}   {eta_str}   {chi_str}   {phi_str}   {mu_str}   {nu_str}   {att_str}                               {hb}"
         
         writeline(line1+line2+line3)
 
