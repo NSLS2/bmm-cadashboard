@@ -1,9 +1,12 @@
 import sys, json, datetime
 from termcolor import colored
 
-import redis
-redis_host = 'xf06bm-ioc2'
-rkvs = redis.Redis(host=redis_host, port=6379, db=0)
+from dashboard_epics import rkvs, maintenance
+
+
+#import redis
+#redis_host = 'xf06bm-ioc2'
+#rkvs = redis.Redis(host=redis_host, port=6379, db=0)
 
 HBARC = 1973.27053324
 strut = u'\u25CF'
@@ -180,7 +183,7 @@ def determine_reference(sample):
     return 'None'
 
 def remaining():
-    elapsed = (datetime.datetime.timestamp(datetime.datetime.now()) - float(rkvs.get('BMM:scan:starttime').decode('utf8')))
+    elapsed = datetime.datetime.timestamp(datetime.datetime.now()) - float(rkvs.get('BMM:scan:starttime').decode('utf8'))
     try:
         estimate = float(rkvs.get('BMM:scan:estimated'))
     except:

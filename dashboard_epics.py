@@ -34,6 +34,7 @@ if rkvs.get('BMM:Ir').decode('utf-8') == 'quadem':
 else:
     ir = epics.PV(pc.get('pvs', 'ir_quadem'))
 iy     = epics.PV(pc.get('pvs', 'iy'))
+#diode  = epics.PV(pc.get('pvs', 'diode'))
 bicron       = epics.PV(pc.get('pvs', 'bicron'))
 ring_current = epics.PV(pc.get('pvs', 'ring_current'))
 sleep(0.25)
@@ -103,6 +104,11 @@ try:
     phi           = epics.Motor(pc.get('motors', 'phi'))
     mu            = epics.Motor(pc.get('motors', 'mu'))
     nu            = epics.Motor(pc.get('motors', 'nu'))
+    dwell         = epics.PV(pc.get('motors', 'dwell'))
+    att1          = epics.PV(pc.get('motors', 'att1'))
+    att2          = epics.PV(pc.get('motors', 'att2'))
+    att3          = epics.PV(pc.get('motors', 'att3'))
+    att4          = epics.PV(pc.get('motors', 'att4'))
 except:
     delta = None
     eta = None
@@ -110,6 +116,11 @@ except:
     phi = None
     mu = None
     nu = None
+    dwell = None
+    att1 = None
+    att2 = None
+    att3 = None
+    att4 = None
     
 slits         = [epics.Motor(pc.get('motors', 'slits_o')),
                  epics.Motor(pc.get('motors', 'slits_i')),
