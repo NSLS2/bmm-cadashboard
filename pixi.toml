@@ -1,4 +1,5 @@
 [workspace]
+requires-pixi = ">=0.82.1"
 channels = ["conda-forge"]
 description = "CA dashboard for xf06bm"
 name = "bmm-cadashboard"
